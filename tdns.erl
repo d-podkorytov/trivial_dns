@@ -3,6 +3,9 @@
 % just transparent DNS proxy
 
 -module(tdns).
+-compile(export_all).
+-autor("Dmitry Podkorytov").
+
 -behaviour(supervisor).
 
 -record(tdns_option, {
@@ -15,9 +18,6 @@
   recv_timeout = 2000
 }).
  
-
--compile(export_all). 
-
 -define(T(),io:format("~p:~p ~n",[?MODULE,?LINE])).
 -define(TIMEOUT,1000).
 -define(SERVERS, [{{77,88,8,3},53}]).
