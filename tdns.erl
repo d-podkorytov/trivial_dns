@@ -4,7 +4,7 @@
 
 -module(tdns).
 -compile(export_all).
--autor("Dmitry Podkorytov").
+-author("Dmitry Podkorytov").
 
 -behaviour(supervisor).
 
@@ -19,6 +19,8 @@
 }).
  
 -define(T(),io:format("~p:~p ~n",[?MODULE,?LINE])).
+-define(T1(Msg),io:format("~p:~p ~p ~n",[?MODULE,?LINE,Msg])).
+
 -define(TIMEOUT,1000).
 -define(SERVERS, [{{77,88,8,3},53}]).
  
@@ -31,19 +33,19 @@ behaviour_info(_Other) -> undefined.
 %% External APIs
 
 start_link(Module) -> 
- ?T(),
+ ?T1(Module),
  start_link(Module, #tdns_option{}).
  
 start_link(RegistName, Module) when is_atom(Module) ->
- ?T(),
+ ?T1({RegistName, Module}),
   start_link(RegistName, Module, #tdns_option{});
 
 start_link(Module, Option) ->
- ?T(),
+ ?T1({Module, Option}),
   start_link({local, ?MODULE}, Module, Option).
  
 start_link({Dest, Name}=RegistName, Module, Option) ->
-  ?T(),
+  ?T1({RegistName, Module, Option}),
   supervisor:start_link(
     {Dest, supervisor_name(Name)},
     ?MODULE,
@@ -51,11 +53,11 @@ start_link({Dest, Name}=RegistName, Module, Option) ->
   ).
  
 stop() -> 
- ?T(),
+ ?T1(stop),
  stop(?MODULE).
  
 stop(Name) ->
-   ?T(),
+   ?T1(Name),
   case whereis(supervisor_name(Name)) of
     Pid when is_pid(Pid) ->
       exit(Pid, normal),
@@ -64,12 +66,12 @@ stop(Name) ->
   end.
  
 supervisor_name(Name) when is_atom(Name)-> 
-    ?T(),
+    ?T1(Name),
     list_to_atom(atom_to_list(Name) ++ "_sup").
  
 %% Callbacks
 init([{_Dest, Name}=RegistName, Module, Option]) ->
-  ?T(),
+  ?T1({RegistName, Module, Option}),
   #tdns_option{
     max_restarts = MaxRestarts,
     time = Time,
@@ -90,7 +92,7 @@ init([{_Dest, Name}=RegistName, Module, Option]) ->
 %% External APIs
 
 receiver_start_link({Dest, Name}, Module, Option) ->
-  ?T(),
+  ?T1({{Dest, Name}, Module, Option}),
   {ok, Pid}
     = proc_lib:start_link(?MODULE, receiver_init, [self(), Module, Option]),
   case Dest of
@@ -101,7 +103,7 @@ receiver_start_link({Dest, Name}, Module, Option) ->
  
 %% Callbacks
 receiver_init(Parent, Module, Option) ->
-  ?T(),
+  ?T1({Parent, Module, Option}),
   case gen_udp:open(
     Option#tdns_option.port,
     Option#tdns_option.option
@@ -116,7 +118,7 @@ receiver_init(Parent, Module, Option) ->
   end.
  
 recv(false, Socket, Module, Option) ->
-  ?T(),
+  ?T1({false, Socket, Module, Option}),
   case gen_udp:recv(
     Socket,
     Option#tdns_option.recv_length,
@@ -129,7 +131,7 @@ recv(false, Socket, Module, Option) ->
   end;
  
 recv(_Active, Socket, Module, Option) ->
-  ?T(),
+  ?T1({_Active, Socket, Module, Option}),
   receive
     {udp, Socket, Address, Port, Packet} ->
       Module:handle_call(Socket, Address, Port, Packet),
@@ -142,7 +144,7 @@ recv(_Active, Socket, Module, Option) ->
   end.
 
 handle_call(Socket, ClientIP, Port, Packet)->
- ?T(),
+ ?T1({Socket, ClientIP, Port, Packet}),
  io:format("~p:~p ~p ~n",[?MODULE,?LINE,{now(),Socket, ClientIP, Port, inet_dns:decode(Packet)}]),
  handle_query_tu(Socket, ClientIP, Port,inet_dns:decode(Packet)).
 
